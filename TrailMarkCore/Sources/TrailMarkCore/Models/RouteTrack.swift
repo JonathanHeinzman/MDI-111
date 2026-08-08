@@ -66,6 +66,19 @@ public struct RouteTrack: Hashable, Sendable, Codable {
         }
         return total
     }
+    
+    public var altitudeGain: Double {
+        guard points.count > 1 else { return 0 }
+        
+        var gain: Double = 0
+        for index in 1..<points.count {
+            let delta = points[index].altitude - points[index - 1].altitude
+            if delta > 0 { gain += delta }
+        }
+        
+        return gain
+    }
+    
     public var isEmpty: Bool {
         points.isEmpty
     }

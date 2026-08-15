@@ -36,7 +36,7 @@ public struct LiveVitals: Equatable, Sendable, Codable {
     public var steps: Double
     public var activeEnergyKcal: Double
     
-    public init(heartRateBPM: Double = 0, steps: Double = 0 activeEnergyKcal: Double = 0) {
+    public init(heartRateBPM: Double = 0, steps: Double = 0, activeEnergyKcal: Double = 0) {
         self.heartRateBPM = heartRateBPM
         self.steps = steps
         self.activeEnergyKcal = activeEnergyKcal

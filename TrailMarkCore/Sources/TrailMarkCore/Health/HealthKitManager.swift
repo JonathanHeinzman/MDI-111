@@ -83,13 +83,16 @@ public final class HealthKitManager {
         let sixPmYesterday = calendar.date(byAdding: .hour, value: -18, to: noonToday) ?? now
         
         let samples: [HKCategorySample] = await withCheckedContinuation { continuation in
+            // This is the time predicate (start and end date)
             let predicate = HKQuery.predicateForSamples(withStart: sixPmYesterday, end: noonToday)
+            
+            // This is the actual query
             let query = HKSampleQuery(
                 sampleType: sleepType,
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
-            ) { query, results, error in
+            ) { query, results, error in // Results is an [HKSample];
                 continuation.resume(returning: (results as? [HKCategorySample]) ?? [])
             }
             
@@ -97,6 +100,93 @@ public final class HealthKitManager {
         }
         
         // Processing Data Part
+        // [HKCategorySample] -> SleepSummary
+        // Category Types are Enums (They have a defined set of options)
+        
+        // These options are the 4 sleep statuses that we recognize as a valid sleeping status
+        let asleepValues: Set<Int> = [
+            HKCategoryValueSleepAnalysis.asleep.rawValue,
+            HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+            HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+            HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+            
+        ]
+        
+        let total = samples
+            .filter { asleepValues.contains($0.value) }
+            .reduce(0) { $0 + $1.endDate.timeIntervalSince($1.startDate) } // acc + duration
+        
+        self.sleep = SleepSummary(asleepSeconds: total, date: calendar.startOfDay(for: now))
+        
+    }
+    
+    // We want to calculate a 7 days active energy trend ( Monday: AET (Avg), Tuesday: AET (Avg))
+    
+    public func refreshEnergyTrend() async {
+        guard authorizationStatus == .authorized else { return }
+        let calendar = Calendar.current
+        let endDay = calendar.startOfDay(for: Date())
+        guard let startDate = calendar.date(byAdding: .day, value: -6, to: endDay) else { return }
+        
+        let trend: [EnergyTrendPoint] = await withCheckedContinuation { continuation in
+            var interval = DateComponents()
+            interval.day = 1
+            let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDay)
+            let query = HKStatisticsCollectionQuery (
+                quantityType: energyType,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage,
+                anchorDate: startDate,
+                intervalComponents: interval
+            )
+            query.initialResultsHandler = { query, collection, error in
+                var points: [EnergyTrendPoint] = []
+                collection?.enumerateStatistics(from: startDate, to: Date()) { stats, _ in
+                    let kcal = stats.sumQuantity()!.doubleValue(for: .kilocalorie()) ?? 0
+                    points.append(EnergyTrendPoint(day: stats.startDate, activeEnergyKcal: kcal))
+                }
+                continuation.resume(returning: points)
+            }
+            store.execute(query)
+        }
+        self.energyTrend = trend
+    }
+    
+    // TODO: Create this func
+    public func refreshEnergyTrendWithHKSampleQuery() async {
+        guard authorizationStatus == .authorized else { return }
+        let calendar = Calendar.current
+    
+        let today = calendar.startOfDay(for: Date())
+
+        guard let startDate = calendar.date( byAdding: .day, value: -6, to: today ),
+              let endDate = calendar.date(byAdding: .day, value: 1, to: today) else { return }
+        
+        let samples: [HKQuantitySample] = await withCheckedContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples( withStart: startDate, end: endDate )
+            
+            let query = HKSampleQuery(
+                sampleType: energyType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { query, results, error in
+                continuation.resume(returning: (results as? [HKQuantitySample]) ?? [])
+            }
+        }
+        
+        // 2. buckets by calendar day
+        var totals: [Date: Double] = [:]
+        for sample in samples {
+            let date = calendar.startOfDay(for: sample.startDate)
+            totals[date, default: 0] += sample.quantity.doubleValue(for: .kilocalorie())
+        }
+        
+        self.energyTrend = (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: startDate) else { return nil }
+            return EnergyTrendPoint(day: day, activeEnergyKcal: totals[day] ?? 0)
+        
+        }
     }
 }
 

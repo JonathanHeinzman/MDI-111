@@ -58,4 +58,28 @@ public struct ActivitySummary: Equatable, Sendable, Codable {
         self.date = date
     }
     public static let empty = ActivitySummary()
+    
+    public var stepsText: String {
+        Self.wholeNumber.string(from: NSNumber(value: steps)) ?? "0"
+    }
+    
+    public var activeEnergyText: String {
+        let value = Self.wholeNumber.string(from: NSNumber(value: activeEnergyKcal)) ?? "0"
+        return "\(value) k cal"
+    }
+    
+    public var distanceText: String {
+        let f = MeasurementFormatter()
+        f.unitOptions = .naturalScale
+        f.numberFormatter.maximumFractionDigits = 2
+        let measurement = Measurement(value: distanceMeters, unit: UnitLength.meters)
+        return f.string(from: measurement)
+    }
+    
+    private static let wholeNumber: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 0
+        return f
+    }()
 }

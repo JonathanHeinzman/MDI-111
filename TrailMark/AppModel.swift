@@ -12,6 +12,8 @@ import TrailMarkCore
 @MainActor
 @Observable
 final class AppModel {
-    let dummy = Dummy()
+    let health = HealthKitManager()
+    let media = MediaStore()
+    let location = LocationManager()
 }
 

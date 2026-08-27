@@ -266,7 +266,7 @@ public final class HealthKitManager {
         liveQueries.append(query)
     }
     
-    // one shot
+    // one shot refresh today's steps plus energy used by the live vitals struct
     public func refreshTodaysVitals() async {
         let startOfDay = Calendar.current.startOfDay(for: Date())
         async let steps = sumQuantity(stepType, unit: .count(), since: startOfDay)

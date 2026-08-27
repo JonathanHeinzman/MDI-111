@@ -15,7 +15,7 @@ import Observation
 public final class MediaStore {
     public private(set) var memos: [MediaMemo] = []
     
-    private let fileManager: FileManager.default
+    private let fileManager = FileManager.default
     private let indexFileName = "memos.json"
     
     public init() {
@@ -42,7 +42,7 @@ public final class MediaStore {
     // MARK: - Saving
     
     @discardableResult
-    public func add(kind: MemoKind, movingFileFrom sourceURL, duration: TimeInterval, title: String = "", coordinate: CLLocationCoordinate2D? = nil) throws -> MediaMemo {
+    public func add(kind: MemoKind, movingFileFrom sourceURL: URL, duration: TimeInterval, title: String = "", coordinate: CLLocationCoordinate2D? = nil) throws -> MediaMemo {
         let id = UUID()
         let ext = sourceURL.pathExtension.isEmpty ? (kind == .audio ? "m4a" : "mov") : sourceURL.pathExtension
         let fileName = "\(id.uuidString).\(ext)"

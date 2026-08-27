@@ -8,14 +8,17 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(WatchModel.self) private var model
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        NavigationStack {
+            List {
+                WristHomeView()
+                
+                Section{
+                    
+                }
+            }
         }
-        .padding()
     }
 }
 

@@ -31,8 +31,6 @@ extension LocationManager: CLLocationManagerDelegate {
     
     nonisolated public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         // Location failures are common and transient (e.g. fix indoors)
-        
         // We swallow them so the UI keeps track of the events
-        
     }
 }
